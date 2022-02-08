@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style></style>
+  </head>
+  <body>
+    <input type="file" multiple />
+
+    <button onclick="upload()">上传</button>
+  </body>
+  <script>
+    const file = document.getElementsByTagName('input')[0];
+
+    function getFileSize (fileSize) {
+      const size = ['B', 'KB', 'MB', 'GB', 'TB', 'PB', 'EB', 'ZB', 'YB'];
+      const base = 1024;
+
+      let res = 0;
+      
+      for (let i = 0; i < size.length; i++) {
+        if (fileSize < base) {
+          res = fileSize + size[0];
+        } else {
+          if (
+            fileSize < Math.pow(base, i + 1) &&
+            fileSize >= Math.pow(base, i)
+          ) {
+            res = (fileSize / Math.pow(base, i)).toFixed(2) + size[i];
+          }
+        }
+      }
+
+      return res;
+    }
+
+    // 文件切片
+    function slice (blob, size = 4096) {
+      const count = Math.ceil(blob.size / size)
+      const result = []
+
+      for (let i = 0; i < count; i++) {
+        const start = i === 0 ? i * size : i * size + 1
+        const chunk = blob.slice(start, i * size + size, blob.type)
+        
+        result.push(chunk)
+      }
+
+      return result
+    }
+
+  
+    file.onchange = (e) => {
+      e.preventDefault();
+      //   upload()
+      console.log(file.files);
+      const blob = new Blob([file.files[0]], {
+        type: file.files[0].type,
+      });
+      console.log(getFileSize(file.files[0].size));
+      slice(blob, 1024 * 1024 * 10)
+      console.log(blob);
+    };
+
+
+    function upload() {
+      const ajax = new XMLHttpRequest();
+
+      ajax.open('POST', 'http://localhost:3000/upload', true);
+
+      const fd = new FormData();
+
+      for (const item of file.files) {
+        fd.append('files', item);
+      }
+
+      ajax.send(fd);
+
+      ajax.onreadystatechange = (e) => {
+        if (ajax.readyState === 4 && ajax.status === 200) {
+        }
+      };
+      ajax.addEventListener('load', (e) => {
+        console.log('加载', e);
+      });
+      ajax.addEventListener('loadstart', (e) => {
+        console.log('开始加载', e);
+      });
+      ajax.addEventListener('progress', (e) => {
+        console.log('上传中', e);
+      });
+      ajax.addEventListener('loadend', (e) => {
+        console.log('上传完成', e);
+      });
+    }
+    // console.log(file.files)
+  </script>
+</html>
