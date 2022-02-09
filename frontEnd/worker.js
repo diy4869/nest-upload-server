@@ -1,4 +1,4 @@
-import SparkMD5 from './sparkMD5.js';
+// import SparkMD5 from './sparkMD5.js';
 
 /**
  * @param file 文件
@@ -46,11 +46,11 @@ function md5(file, chunkSize) {
   });
 }
 
-self.addEventListener('message', (e) => {
-  console.log(e.data);
-  const args = e.data;
+// self.addEventListener('message', (e) => {
+//   console.log(e.data);
+//   const args = e.data;
 
-  md5(args.file, args.chunkSize).then((res) => {
-    console.log(res);
-  });
-});
+//   md5(args.file, args.chunkSize).then((res) => {
+//     console.log(res);
+//   });
+// });
