@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Document</title>
+    <style></style>
+  </head>
+  <body>
+    <input type="file" multiple />
+
+    <button>上传</button>
+  </body>
+  <script src="https://cdn.jsdelivr.net/npm/spark-md5@3.0.2/spark-md5.min.js"></script>
+  <script src="./index.js"></script>
+  <script type="module">
+    // import { slice, getFileSize } from 'file:///D:/code/nest-upload-server/frontEnd/index.js'
+
+    const file = document.getElementsByTagName('input')[0];
+    const button = document.getElementsByTagName('button')[0];
+
+
+
+    const worker = new Worker('./worker.js', {
+      type: 'module'
+    })
+
+    worker.onerror = e => {
+      console.log(e)
+    }
+
+
+
+    function createRequest(options) {
+      return new Promise((resolve, reject) => {
+        const { URL, method, data } = options;
+
+        const ajax = new XMLHttpRequest();
+        ajax.open(method, URL, true);
+        ajax.send(data);
+
+        ajax.onreadystatechange = (e) => {
+          if (ajax.readyState === 4 && ajax.status === 200) {
+            resolve(JSON.parse(ajax.response));
+          }
+        };
+      });
+    }
+
+    function upload() {
+      const [uploadFile] = file.files;
+      const spark = new SparkMD5.ArrayBuffer();
+      console.log(spark);
+      // spark.append(new Blob([uploadFile]))
+      // console.log(spark.end())
+      console.log(getFileSize(uploadFile.size));
+
+      const chunkList = slice(uploadFile, 1024 * 1024 * 10);
+
+      worker.postMessage({
+        file: uploadFile,
+        chunkSize: 1024 * 1024 * 10
+      })
+      // worker.onmessage = e => {
+      //   console.log('worker的消息', e)
+      // }
+
+      for (let i = 0; i < chunkList.length; i++) {
+        spark.append(chunkList[i]);
+      }
+
+      const ajaxList = chunkList.map((blob) => {
+        const fd = new FormData();
+        fd.append('hash', 'asdf');
+        fd.append('files', blob);
+        fd.append('filename', uploadFile.name);
+
+        // console.log(fd);
+
+        // return createRequest({
+        //   URL: 'http://localhost:3000/upload',
+        //   method: 'POST',
+        //   data: fd,
+        // });
+      });
+
+      Promise.all(ajaxList).then((res) => {
+        console.log(res);
+      });
+
+      console.log(ajaxList);
+
+      // ajax.send(fd);
+
+      // ajax.onreadystatechange = (e) => {
+      //   if (ajax.readyState === 4 && ajax.status === 200) {
+      //   }
+      // };
+      // ajax.addEventListener('load', (e) => {
+      //   console.log('加载', e);
+      // });
+      // ajax.addEventListener('loadstart', (e) => {
+      //   console.log('开始加载', e);
+      // });
+      // ajax.addEventListener('progress', (e) => {
+      //   console.log('上传中', e);
+      // });
+      // ajax.addEventListener('loadend', (e) => {
+      //   console.log('上传完成', e);
+      // });
+    }
+    // console.log(file.files)
+    button.onclick = upload;
+    file.onchange = (e) => {
+      e.preventDefault();
+      //   upload()
+      console.log(file.files);
+
+      upload();
+    };
+  </script>
+</html>
