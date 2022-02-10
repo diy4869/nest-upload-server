@@ -26,11 +26,11 @@ function slice(file, size = 1024 * 1024 * 2) {
   const result = [];
 
   for (let i = 0; i < count; i++) {
-    const start = i === 0 ? i * size : i * size;
+    const start = i === 0 ? i * size : i * size + 1;
     const end = i * size + size;
 
-    console.log(start, end);
-    const chunk = blob.slice(start, i * size + size + 1, blob.type);
+    console.log(start, end)
+    const chunk = blob.slice(start, end, blob.type);
 
     result.push(chunk);
   }

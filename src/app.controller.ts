@@ -15,6 +15,7 @@ import fs = require('fs');
 import path = require('path');
 import dayjs = require('dayjs');
 
+
 interface uploadFileQuery {
   hash: string;
   chunk: string;
@@ -41,18 +42,19 @@ export class AppController {
 
     @UploadedFiles() files: { files: Array<Express.Multer.File> },
   ) {
-    console.log(body);
+    console.log(request, body);
 
     const [file] = files.files;
 
     const writeDir = path.resolve(__dirname, `../upload/${dayjs().format('YYYY-MM-DD')}/${body.filename}`)
-    
+
+    console.log(writeDir)
     fs.mkdirSync(writeDir, {
       recursive: true,
     });
     const writePath = path.resolve(
       __dirname,
-      `../upload/${dayjs().format('YYYY-MM-DD')}/${body.chunk} - ${body.filename}`,
+      `../upload/${dayjs().format('YYYY-MM-DD')}/${body.filename}/${body.chunk} - ${body.filename}`,
     );
 
     console.log(writePath);
@@ -68,10 +70,62 @@ export class AppController {
   }
 
   @Post('/mergeFiles')
-  mergeFile(@Body() body: mergeFileQuery) {
+  async mergeFile(@Body() body: mergeFileQuery) {
     const { size, filename } = body;
 
-    console.log(body);
-    return 'hello world';
+    const dirPath = path.resolve(
+      __dirname,
+      `../upload/2022-02-10/[BeanSub&FZSD][Kimetsu_no_Yaiba][35][GB][1080P][x264_AAC].mp4`,
+    );
+
+    const fileList = fs.readdirSync(dirPath)
+      .sort((a, b) => {
+        const chunk1 = +a.match(/(\d+)/g)[0]
+        const chunk2 = +b.match(/(\d+)/g)[0]
+
+        return chunk1 - chunk2
+      })
+
+    const data = fileList.map((file, index) => {
+
+      return new Promise((resolve) => {
+        const filePath = path.resolve(dirPath, file)
+        fs.readFile(filePath, (err, buffer) => {
+          fs.appendFile('./upload/c.mp4', buffer, () => {
+            resolve('end')
+          })
+        })
+
+        // // console.log(read)
+
+        //     resolve('end')
+        //   const readStream = fs.createReadStream(filePath)
+
+        //   // console.log(index * size, index + 1 * size)
+        //   const writeStream = fs.createWriteStream(
+        //     './upload/b.mp4'
+        //   )
+
+        //   readStream.on('error', (stream) => {
+        //     console.log(stream)
+        //   })
+        //   readStream.on('end', () => {
+        //     resolve('end')
+        //     console.log('end')
+        //   })
+
+        //   // console.log(readStream, writeStream)
+
+        //   readStream.pipe(writeStream, {
+        //     end: false
+        //   })
+      })
+
+    })
+
+    await Promise.all(data)
+
+
+    return body;
   }
 }

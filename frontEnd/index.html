@@ -12,6 +12,7 @@
 
     <button>上传</button>
   </body>
+  <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/spark-md5@3.0.2/spark-md5.min.js"></script>
   <script src="./index.js"></script>
   <script src="./worker.js"></script>
@@ -31,7 +32,7 @@
 
     function createRequest(options) {
       return new Promise((resolve, reject) => {
-        const { URL, method, data, events, headers } = options;
+        const { URL, method, data, events, headers = {} } = options;
 
         const ajax = new XMLHttpRequest();
         ajax.open(method, URL, true);
@@ -51,13 +52,17 @@
           Object.keys(events).forEach((event) => {
             ajax.addEventListener(event, events[event]);
           });
-
         }
-        ajax.send(new URLSearchParams(data));
 
-
+        
+        if (headers['Content-Type'] === 'application/x-www-form-urlencoded'){
+          ajax.send(new URLSearchParams(data));
+        } else {
+          ajax.send(data)
+        }
+        
         ajax.onreadystatechange = (e) => {
-          if (ajax.readyState === 4 && ajax.status === 200) {
+          if (ajax.readyState === 4 && ajax.status === 201) {
             resolve(JSON.parse(ajax.response));
           }
         };
@@ -66,8 +71,6 @@
 
     async function upload() {
       const [uploadFile] = file.files;
-      const spark = new SparkMD5.ArrayBuffer();
-      console.log(spark);
       // spark.append(new Blob([uploadFile]))
       // console.log(spark.end())
       console.log(getFileSize(uploadFile.size));
@@ -83,49 +86,66 @@
       //   console.log('worker的消息', e)
       // }
 
-      console.log(chunkList)
+      // console.log(chunkList)
       // return
-      // const hash = await md5(uploadFile, chunkSize);
+      const hash = await md5(uploadFile, chunkSize);
 
 
-      // const ajaxList = chunkList.map((blob, index) => {
-      //   const fd = new FormData();
-      //   fd.append('hash', hash);
-      //   fd.append('files', blob);
-      //   fd.append('chunk', index);
-      //   fd.append('filename', uploadFile.name);
+    
+      const ajaxList = []
 
-      //   return createRequest({
-      //     URL: 'http://localhost:3000/upload',
-      //     method: 'POST',
-      //     data: fd,
-      //     events: {
-      //       load(e) {
-      //         console.log('加载', index, e);
-      //       },
-      //       loadstart(e) {
-      //         console.log('开始加载', index, e);
-      //       },
-      //       progress(e) {
-      //         console.log('上传中', index, ((e.loaded / e.total) * 100).toFixed(2), e);
-      //       },
-      //       loadend(e) {
-      //         console.log('上传完成', index, e);
-      //       },
-      //     },
-      //   });
-      // });
+      for (let index = 0; index < chunkList.length; index++) {
+        const fd = new FormData();
+        fd.append('hash', hash);
+        fd.append('files', chunkList[index]);
+        fd.append('chunk', index);
+        fd.append('filename', uploadFile.name);
+
+        console.log(chunkList[index])
+
+        ajaxList.push(
+          axios({
+            url: 'http://localhost:3000/upload',
+            method: 'post',
+            data: fd,
+            maxContentLength: Infinity,
+            onUploadProgress (e) {
+              console.log('上传中', index, ((e.loaded / e.total) * 100).toFixed(2), e);
+            }
+          })
+          // createRequest({
+          //   URL: 'http://localhost:3000/upload',
+          //   method: 'POST',
+          //   data: fd,
+          //   events: {
+          //     load(e) {
+          //       console.log('加载', index, e);
+          //     },
+          //     loadstart(e) {
+          //       console.log('开始加载', index, e);
+          //     },
+          //     progress(e) {
+          //       console.log('上传中', index, ((e.loaded / e.total) * 100).toFixed(2), e);
+          //     },
+          //     loadend(e) {
+          //       console.log('上传完成', index, e);
+          //     },
+          //   },
+          // })
+        )
+      }
+
 
       // console.log(ajaxList);
 
-      // Concurrent(ajaxList, 2).then((res) => {
-      //   console.log(res);
-      // });
+      await Promise.all(ajaxList)
 
-      createRequest({
+      await createRequest({
         URL: 'http://localhost:3000/mergeFiles',
         method: 'POST',
         data: {
+          id: 1,
+          hash: '48119354a6d59d83c52b5405a308e35d',
           size: chunkSize,
           filename: uploadFile.name
         },
